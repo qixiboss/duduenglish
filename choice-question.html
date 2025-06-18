@@ -74,18 +74,26 @@
                         <h3 class="text-lg font-medium text-gray-800 mb-4">导入新选择题</h3>
                         <div class="space-y-4">
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">题库名称</label>
+                                <input type="text" id="question-bank-name" class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" 
+                                    placeholder="请输入题库名称，如：数学选择题、英语语法题等">
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">选择题数据</label>
                                 <textarea id="choice-question-data" class="w-full h-64 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" 
                                     placeholder="支持两种格式：
 
 1. JSON格式（推荐）：
-[
-  {
-    'question': '题目内容',
-    'options': ['A. 选项A', 'B. 选项B', 'C. 选项C', 'D. 选项D'],
-    'answer': 'A'
-  }
-]
+{
+  'question': '题目内容',
+  'options': ['A. 选项A', 'B. 选项B', 'C. 选项C', 'D. 选项D'],
+  'answer': 'A'
+},
+{
+  'question': '题目内容',
+  'options': ['A. 选项A', 'B. 选项B', 'C. 选项C', 'D. 选项D'],
+  'answer': 'B'
+}
 
 2. 文本格式：
 题目内容
@@ -274,7 +282,14 @@ D. 选项D
         // 导入选择题
         function importChoiceQuestions() {
             try {
+                const bankName = document.getElementById('question-bank-name').value.trim();
                 const data = document.getElementById('choice-question-data').value.trim();
+                
+                if (!bankName) {
+                    alert('请输入题库名称！');
+                    return;
+                }
+                
                 if (!data) {
                     alert('请输入选择题数据！');
                     return;
@@ -286,7 +301,32 @@ D. 选项D
                 
                 // 尝试解析JSON格式
                 try {
-                    const jsonData = JSON.parse(data);
+                    let jsonData;
+                    
+                    // 首先尝试直接解析
+                    try {
+                        jsonData = JSON.parse(data);
+                    } catch (e) {
+                        // 如果直接解析失败，尝试添加[]包装
+                        try {
+                            jsonData = JSON.parse('[' + data + ']');
+                        } catch (e2) {
+                            // 如果还是失败，尝试处理可能的格式问题
+                            let processedData = data;
+                            
+                            // 移除开头和结尾的逗号
+                            processedData = processedData.replace(/^,+\s*/, '').replace(/\s*,+\s*$/, '');
+                            
+                            // 确保每个对象之间有逗号分隔
+                            processedData = processedData.replace(/}\s*{/g, '},{');
+                            
+                            // 添加[]包装
+                            processedData = '[' + processedData + ']';
+                            
+                            jsonData = JSON.parse(processedData);
+                        }
+                    }
+                    
                     if (Array.isArray(jsonData)) {
                         questions = jsonData.map(item => ({
                             id: Date.now() + Math.random(),
@@ -295,6 +335,15 @@ D. 选项D
                             answer: item.answer,
                             createdAt: new Date().toISOString()
                         }));
+                    } else if (typeof jsonData === 'object') {
+                        // 如果是单个对象，转换为数组
+                        questions = [{
+                            id: Date.now() + Math.random(),
+                            question: jsonData.question,
+                            options: jsonData.options,
+                            answer: jsonData.answer,
+                            createdAt: new Date().toISOString()
+                        }];
                     }
                 } catch (e) {
                     console.log('JSON解析失败，尝试文本解析');
@@ -313,7 +362,7 @@ D. 选项D
                 // 创建新题库
                 const newBank = {
                     id: Date.now(),
-                    name: `题库 ${existingBanks.length + 1}`,
+                    name: bankName,
                     questions: questions,
                     createdAt: new Date().toISOString()
                 };
@@ -322,6 +371,7 @@ D. 选项D
                 localStorage.setItem('choiceQuestionBanks', JSON.stringify(existingBanks));
 
                 // 清空输入
+                document.getElementById('question-bank-name').value = '';
                 document.getElementById('choice-question-data').value = '';
 
                 // 刷新题库列表
@@ -635,7 +685,7 @@ D. 选项D
                             <span class="text-sm text-gray-500">错误</span>
                         </div>
                         <div class="mb-1">你的答案：<span class="text-danger">${item.selected}</span></div>
-                        <div>正确答案：<span class="text-success font-medium">${item.answer}</span></div>
+                        <div>正确答案：<span class="text-success font-medium">${item.correct}</span></div>
                     </div>
                 `).join('');
                 
