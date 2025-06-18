@@ -137,9 +137,22 @@
                         <h3 class="text-lg font-medium text-gray-800 mb-4">导入新闪卡</h3>
                         <div class="space-y-4">
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">闪卡组名称</label>
+                                <input type="text" id="flashcard-group-name" class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" 
+                                    placeholder="请输入闪卡组名称，如：英语单词、数学公式等">
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">闪卡数据</label>
                                 <textarea id="flashcard-data" class="w-full h-64 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" 
                                     placeholder="请输入闪卡数据，格式如下：
+
+{
+  'question': '问题内容',
+  'answer': '答案内容',
+  'tags': ['标签1', '标签2'],
+  'difficulty': 'easy/medium/hard',
+  'source': '知识来源'
+},
 {
   'question': '问题内容',
   'answer': '答案内容',
@@ -245,7 +258,14 @@
         // 导入闪卡
         function importFlashcards() {
             try {
+                const groupName = document.getElementById('flashcard-group-name').value.trim();
                 const data = document.getElementById('flashcard-data').value.trim();
+                
+                if (!groupName) {
+                    alert('请输入闪卡组名称！');
+                    return;
+                }
+                
                 if (!data) {
                     alert('请输入闪卡数据！');
                     return;
@@ -261,8 +281,24 @@
                         // 如果失败，尝试添加方括号后解析
                         flashcards = JSON.parse('[' + data + ']');
                     } catch (e2) {
-                        // 如果还是失败，尝试替换单引号后解析
-                        flashcards = JSON.parse('[' + data.replace(/'/g, '"') + ']');
+                        // 如果还是失败，尝试处理可能的格式问题
+                        let processedData = data;
+                        
+                        // 移除开头和结尾的逗号
+                        processedData = processedData.replace(/^,+\s*/, '').replace(/\s*,+\s*$/, '');
+                        
+                        // 确保每个对象之间有逗号分隔
+                        processedData = processedData.replace(/}\s*{/g, '},{');
+                        
+                        // 添加[]包装
+                        processedData = '[' + processedData + ']';
+                        
+                        // 尝试替换单引号后解析
+                        try {
+                            flashcards = JSON.parse(processedData);
+                        } catch (e3) {
+                            flashcards = JSON.parse(processedData.replace(/'/g, '"'));
+                        }
                     }
                 }
 
@@ -276,9 +312,12 @@
                     if (!card.question || !card.answer) {
                         throw new Error(`第 ${index + 1} 个闪卡缺少必要字段`);
                     }
-                    // 确保tags是数组
+                    // 使用用户输入的组名称作为标签
                     if (!Array.isArray(card.tags)) {
-                        card.tags = ['未分类'];
+                        card.tags = [groupName];
+                    } else {
+                        // 如果已有标签，添加组名称作为第一个标签
+                        card.tags.unshift(groupName);
                     }
                     // 确保difficulty存在
                     if (!card.difficulty) {
@@ -304,12 +343,13 @@
                 localStorage.setItem('flashcards', JSON.stringify(existingCards));
 
                 // 清空输入
+                document.getElementById('flashcard-group-name').value = '';
                 document.getElementById('flashcard-data').value = '';
 
                 // 刷新闪卡组列表
                 loadFlashcardGroups();
                 
-                alert('导入成功！');
+                alert(`导入成功！共导入 ${flashcards.length} 张闪卡`);
             } catch (error) {
                 alert('导入失败：' + error.message);
                 console.error(error);
