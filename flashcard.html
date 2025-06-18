@@ -78,6 +78,9 @@
                             进度: <span id="progress">0/0</span>
                         </div>
                         <div class="flex space-x-2">
+                            <button onclick="returnToManagement()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-200">
+                                <i class="fa fa-arrow-left mr-2"></i>返回管理
+                            </button>
                             <button onclick="previousCard()" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all duration-200">
                                 <i class="fa fa-arrow-left mr-2"></i>上一个
                             </button>
@@ -166,6 +169,20 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- 数据清理 -->
+                    <div class="border-t border-gray-200 pt-6">
+                        <h3 class="text-lg font-medium text-gray-800 mb-4">数据清理</h3>
+                        <div class="space-y-4">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-yellow-800 mb-2">修复"未分类"闪卡</h4>
+                                <p class="text-sm text-yellow-700 mb-3">为没有标签的闪卡添加默认标签，避免出现"未分类"组。</p>
+                                <button onclick="fixUncategorizedCards()" class="bg-yellow-600 text-white rounded-lg px-4 py-2 hover:bg-yellow-700 transition-all duration-200">
+                                    <i class="fa fa-wrench mr-2"></i>修复未分类闪卡
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -206,6 +223,8 @@
             const flashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
             const container = document.getElementById('flashcard-groups');
             
+            console.log('加载闪卡组，总数:', flashcards.length);
+            
             if (flashcards.length === 0) {
                 container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无闪卡组</p>';
                 return;
@@ -218,12 +237,16 @@
                 // 使用第一个标签或默认标签
                 const tag = tags.length > 0 ? tags[0] : '未分类';
                 
+                console.log('闪卡标签:', tags, '使用标签:', tag);
+                
                 if (!groups[tag]) {
                     groups[tag] = [];
                 }
                 groups[tag].push(card);
                 return groups;
             }, {});
+
+            console.log('分组结果:', Object.keys(groupedCards));
 
             // 生成HTML内容
             let html = '<button onclick="startStudy()" class="w-full bg-primary text-white rounded-lg px-6 py-3 hover:bg-primary/90 transition-all duration-200 mb-4">' +
@@ -358,21 +381,67 @@
 
         // 删除闪卡组
         function deleteFlashcardGroup(tag) {
-            if (!confirm('确定要删除这个闪卡组吗？')) return;
+            console.log('删除闪卡组，标签:', tag);
+            if (!confirm(`确定要删除标签为"${tag}"的闪卡组吗？`)) return;
 
             let flashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
-            flashcards = flashcards.filter(card => !card.tags.includes(tag));
-            localStorage.setItem('flashcards', JSON.stringify(flashcards));
+            console.log('删除前闪卡数量:', flashcards.length);
+            
+            // 过滤掉包含指定标签的闪卡
+            const remainingCards = flashcards.filter(card => {
+                // 确保tags存在且是数组
+                const tags = Array.isArray(card.tags) ? card.tags : [];
+                
+                // 特殊处理"未分类"标签
+                if (tag === '未分类') {
+                    // 删除没有标签或标签为空的闪卡
+                    const shouldDelete = tags.length === 0;
+                    console.log('未分类闪卡，标签:', tags, '是否删除:', shouldDelete);
+                    return !shouldDelete;
+                } else {
+                    // 如果闪卡包含要删除的标签，则删除该闪卡
+                    const shouldDelete = tags.includes(tag);
+                    console.log('闪卡标签:', tags, '包含目标标签:', shouldDelete);
+                    return !shouldDelete;
+                }
+            });
+            
+            console.log('删除后闪卡数量:', remainingCards.length);
+            localStorage.setItem('flashcards', JSON.stringify(remainingCards));
             loadFlashcardGroups();
+            
+            alert(`已删除标签为"${tag}"的闪卡组`);
         }
 
         // 根据标签开始学习
         function startStudyWithTag(tag) {
+            console.log('开始学习标签:', tag);
             const flashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
-            const filteredCards = flashcards.filter(card => card.tags.includes(tag));
+            console.log('总闪卡数:', flashcards.length);
+            
+            // 改进标签匹配逻辑
+            const filteredCards = flashcards.filter(card => {
+                // 确保tags存在且是数组
+                const tags = Array.isArray(card.tags) ? card.tags : [];
+                
+                // 特殊处理"未分类"标签
+                if (tag === '未分类') {
+                    // 选择没有标签或标签为空的闪卡
+                    const hasTag = tags.length === 0;
+                    console.log('未分类闪卡，标签:', tags, '是否包含:', hasTag);
+                    return hasTag;
+                } else {
+                    // 如果闪卡包含要删除的标签，则选择该闪卡
+                    const hasTag = tags.includes(tag);
+                    console.log('闪卡标签:', tags, '包含目标标签:', hasTag);
+                    return hasTag;
+                }
+            });
+            
+            console.log('过滤后的闪卡数:', filteredCards.length);
             
             if (filteredCards.length === 0) {
-                alert('没有可用的闪卡！');
+                alert(`没有找到标签为"${tag}"的闪卡！`);
                 return;
             }
 
@@ -383,6 +452,7 @@
                 cards: []
             };
 
+            console.log('切换到学习模式，当前卡片:', currentCards[0]);
             document.getElementById('import-area').classList.add('hidden');
             document.getElementById('study-area').classList.remove('hidden');
             showCurrentCard();
@@ -405,19 +475,36 @@
             modal.innerHTML = `
                 <div class="bg-white rounded-xl max-w-md w-full mx-4 p-6">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">选择要学习的标签</h3>
-                    <div class="space-y-2">
+                    <div class="space-y-2" id="tag-buttons">
                         ${tags.map(tag => `
-                            <button onclick="startStudyWithTag('${tag}')" class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-200">
+                            <button class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-200" data-tag="${tag}">
                                 ${tag}
                             </button>
                         `).join('')}
-                        <button onclick="startStudyAll()" class="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all duration-200">
+                        <button class="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all duration-200" id="study-all-btn">
                             学习所有闪卡
                         </button>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
+
+            // 绑定标签按钮事件
+            const tagButtons = modal.querySelectorAll('[data-tag]');
+            tagButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tag = this.getAttribute('data-tag');
+                    document.body.removeChild(modal);
+                    startStudyWithTag(tag);
+                });
+            });
+
+            // 绑定学习所有按钮事件
+            const studyAllBtn = modal.querySelector('#study-all-btn');
+            studyAllBtn.addEventListener('click', function() {
+                document.body.removeChild(modal);
+                startStudyAll();
+            });
 
             // 点击外部关闭弹窗
             modal.addEventListener('click', function(e) {
@@ -429,7 +516,10 @@
 
         // 学习所有闪卡
         function startStudyAll() {
+            console.log('开始学习所有闪卡');
             const flashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
+            console.log('总闪卡数:', flashcards.length);
+            
             if (flashcards.length === 0) {
                 alert('没有可用的闪卡！');
                 return;
@@ -442,6 +532,7 @@
                 cards: []
             };
 
+            console.log('切换到学习模式，当前卡片:', currentCards[0]);
             document.getElementById('import-area').classList.add('hidden');
             document.getElementById('study-area').classList.remove('hidden');
             showCurrentCard();
@@ -497,21 +588,84 @@
 
         // 显示当前闪卡
         function showCurrentCard() {
+            console.log('显示当前闪卡，索引:', currentIndex, '总数:', currentCards.length);
+            
+            if (!currentCards || currentCards.length === 0) {
+                console.error('没有可用的闪卡');
+                alert('没有可用的闪卡！');
+                return;
+            }
+            
+            if (currentIndex >= currentCards.length) {
+                console.error('索引超出范围');
+                alert('索引超出范围！');
+                return;
+            }
+            
             const card = currentCards[currentIndex];
-            document.getElementById('question').textContent = card.question;
-            document.getElementById('answer').textContent = card.answer;
-            document.getElementById('card-tags').textContent = card.tags.join(', ');
-            document.getElementById('card-difficulty').textContent = `难度: ${card.difficulty}`;
-            document.getElementById('card-source').textContent = `来源: ${card.source}`;
-            document.getElementById('progress').textContent = `${currentIndex + 1}/${currentCards.length}`;
+            console.log('当前卡片:', card);
+            
+            try {
+                document.getElementById('question').textContent = card.question || '无问题';
+                document.getElementById('answer').textContent = card.answer || '无答案';
+                document.getElementById('card-tags').textContent = Array.isArray(card.tags) ? card.tags.join(', ') : '无标签';
+                document.getElementById('card-difficulty').textContent = `难度: ${card.difficulty || '未知'}`;
+                document.getElementById('card-source').textContent = `来源: ${card.source || '未知'}`;
+                document.getElementById('progress').textContent = `${currentIndex + 1}/${currentCards.length}`;
 
-            // 重置卡片翻转状态
-            document.getElementById('flashcard').classList.remove('flipped');
+                // 重置卡片翻转状态
+                document.getElementById('flashcard').classList.remove('flipped');
+                
+                console.log('闪卡显示成功');
+            } catch (error) {
+                console.error('显示闪卡时出错:', error);
+                alert('显示闪卡时出错：' + error.message);
+            }
         }
 
         // 翻转卡片
         function flipCard() {
             document.getElementById('flashcard').classList.toggle('flipped');
+        }
+
+        // 返回管理界面
+        function returnToManagement() {
+            document.getElementById('study-area').classList.add('hidden');
+            document.getElementById('import-area').classList.remove('hidden');
+            // 重置学习状态
+            currentCards = [];
+            currentIndex = 0;
+            studySession = null;
+        }
+
+        // 修复未分类闪卡
+        function fixUncategorizedCards() {
+            const flashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
+            let fixedCount = 0;
+            
+            const fixedFlashcards = flashcards.map(card => {
+                // 确保tags存在且是数组
+                const tags = Array.isArray(card.tags) ? card.tags : [];
+                
+                // 如果没有标签，添加默认标签
+                if (tags.length === 0) {
+                    fixedCount++;
+                    return {
+                        ...card,
+                        tags: ['默认分类']
+                    };
+                }
+                return card;
+            });
+            
+            localStorage.setItem('flashcards', JSON.stringify(fixedFlashcards));
+            loadFlashcardGroups();
+            
+            if (fixedCount > 0) {
+                alert(`已修复 ${fixedCount} 张未分类闪卡，添加了"默认分类"标签。`);
+            } else {
+                alert('没有发现未分类的闪卡。');
+            }
         }
 
         // 上一个卡片
@@ -573,7 +727,15 @@
 
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('闪卡页面初始化...');
             loadFlashcardGroups();
+            
+            // 添加调试信息
+            const flashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
+            console.log('当前闪卡数量:', flashcards.length);
+            if (flashcards.length > 0) {
+                console.log('闪卡示例:', flashcards[0]);
+            }
         });
     </script>
 </body>
