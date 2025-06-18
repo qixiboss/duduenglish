@@ -138,6 +138,20 @@
                         查看说明
                     </button>
                 </div>
+
+                <!-- 数据管理卡片 -->
+                <div class="bg-white rounded-xl card-shadow p-6 transform transition-all duration-300 hover:shadow-lg flex flex-col h-full">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-danger/10 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-download text-danger text-xl"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold text-gray-800">数据管理</h2>
+                    </div>
+                    <p class="text-gray-600 flex-grow">一键导出所有学习数据，或导入备份数据到其他设备。</p>
+                    <button onclick="showDataManager()" class="block w-full bg-danger text-white text-center rounded-lg px-6 py-3 hover:bg-danger/90 transition-all duration-200 mt-6">
+                        管理数据
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -158,6 +172,94 @@
             <div class="p-6 overflow-y-auto flex-grow">
                 <div id="readme-content" class="prose prose-lg max-w-none">
                     <!-- README 内容将由JS动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据管理模态框 -->
+    <div id="data-manager-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <i class="fa fa-database mr-2"></i>数据管理
+                    </h3>
+                    <button onclick="closeDataManager()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div class="space-y-6">
+                    <!-- 数据统计 -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-800 mb-3">当前数据统计</h4>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">单词组数量：</span>
+                                <span class="font-medium" id="word-groups-count">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">闪卡数量：</span>
+                                <span class="font-medium" id="flashcards-count">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">选择题题库：</span>
+                                <span class="font-medium" id="choice-questions-count">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">错题记录：</span>
+                                <span class="font-medium" id="wrong-words-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 导出功能 -->
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                            <i class="fa fa-download mr-2 text-success"></i>导出数据
+                        </h4>
+                        <p class="text-sm text-gray-600 mb-4">导出所有学习数据为JSON文件，包含单词组、闪卡、选择题等。</p>
+                        <button onclick="exportAllData()" class="w-full bg-success text-white rounded-lg px-4 py-2 hover:bg-success/90 transition-all duration-200">
+                            <i class="fa fa-download mr-2"></i>一键导出所有数据
+                        </button>
+                    </div>
+
+                    <!-- 导入功能 -->
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                            <i class="fa fa-upload mr-2 text-primary"></i>导入数据
+                        </h4>
+                        <p class="text-sm text-gray-600 mb-4">导入之前导出的数据文件，将合并到当前数据中。</p>
+                        <div class="space-y-3">
+                            <input type="file" id="import-file" accept=".json" class="hidden" onchange="handleFileSelect(event)">
+                            <button onclick="document.getElementById('import-file').click()" class="w-full bg-primary text-white rounded-lg px-4 py-2 hover:bg-primary/90 transition-all duration-200">
+                                <i class="fa fa-upload mr-2"></i>选择文件
+                            </button>
+                            <div id="import-preview" class="hidden">
+                                <div class="bg-gray-50 rounded p-3">
+                                    <h5 class="font-medium text-sm mb-2">文件预览：</h5>
+                                    <div id="import-stats" class="text-xs text-gray-600 space-y-1"></div>
+                                </div>
+                                <button onclick="importAllData()" class="w-full bg-primary text-white rounded-lg px-4 py-2 hover:bg-primary/90 transition-all duration-200 mt-3">
+                                    <i class="fa fa-check mr-2"></i>确认导入（将合并到现有数据）
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 注意事项 -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-yellow-800 mb-2 flex items-center">
+                            <i class="fa fa-exclamation-triangle mr-2"></i>注意事项
+                        </h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• 导入数据将合并到当前数据中，不会覆盖现有数据</li>
+                            <li>• 重复的数据项可能会被保留，请检查导入结果</li>
+                            <li>• 数据仅存储在本地浏览器中，请定期备份</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -198,6 +300,195 @@
                 closeReadme();
             }
         });
+
+        // 显示数据管理器
+        function showDataManager() {
+            updateDataStats();
+            document.getElementById('data-manager-modal').classList.remove('hidden');
+            document.getElementById('data-manager-modal').classList.add('flex');
+        }
+
+        // 关闭数据管理器
+        function closeDataManager() {
+            document.getElementById('data-manager-modal').classList.add('hidden');
+            document.getElementById('data-manager-modal').classList.remove('flex');
+            // 重置导入预览
+            document.getElementById('import-preview').classList.add('hidden');
+            document.getElementById('import-file').value = '';
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('data-manager-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDataManager();
+            }
+        });
+
+        // 更新数据统计
+        function updateDataStats() {
+            const wordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+            const flashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
+            const choiceQuestionBanks = JSON.parse(localStorage.getItem('choiceQuestionBanks') || '[]');
+            const wrongWords = JSON.parse(localStorage.getItem('wrongWords') || '[]');
+
+            document.getElementById('word-groups-count').textContent = wordGroups.length;
+            document.getElementById('flashcards-count').textContent = flashcards.length;
+            document.getElementById('choice-questions-count').textContent = choiceQuestionBanks.length;
+            document.getElementById('wrong-words-count').textContent = wrongWords.length;
+        }
+
+        // 导出所有数据
+        function exportAllData() {
+            const exportData = {
+                version: '1.0',
+                exportTime: new Date().toISOString(),
+                data: {
+                    wordGroups: JSON.parse(localStorage.getItem('wordGroups') || '[]'),
+                    flashcards: JSON.parse(localStorage.getItem('flashcards') || '[]'),
+                    choiceQuestionBanks: JSON.parse(localStorage.getItem('choiceQuestionBanks') || '[]'),
+                    wrongWords: JSON.parse(localStorage.getItem('wrongWords') || '[]'),
+                    studyHistory: JSON.parse(localStorage.getItem('studyHistory') || '[]')
+                }
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `english-learning-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            alert('数据导出成功！');
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    showImportPreview(data);
+                } catch (error) {
+                    alert('文件格式错误，请选择正确的JSON文件！');
+                    console.error('解析文件失败:', error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 显示导入预览
+        function showImportPreview(data) {
+            const statsDiv = document.getElementById('import-stats');
+            let statsHtml = '';
+
+            if (data.data) {
+                const d = data.data;
+                statsHtml += `<div>单词组：${d.wordGroups ? d.wordGroups.length : 0} 个</div>`;
+                statsHtml += `<div>闪卡：${d.flashcards ? d.flashcards.length : 0} 张</div>`;
+                statsHtml += `<div>选择题题库：${d.choiceQuestionBanks ? d.choiceQuestionBanks.length : 0} 个</div>`;
+                statsHtml += `<div>错题记录：${d.wrongWords ? d.wrongWords.length : 0} 条</div>`;
+                if (d.studyHistory) {
+                    statsHtml += `<div>学习历史：${d.studyHistory.length} 条</div>`;
+                }
+            } else {
+                statsHtml = '<div class="text-red-500">文件格式不正确</div>';
+            }
+
+            statsDiv.innerHTML = statsHtml;
+            document.getElementById('import-preview').classList.remove('hidden');
+        }
+
+        // 导入所有数据
+        function importAllData() {
+            const file = document.getElementById('import-file').files[0];
+            if (!file) {
+                alert('请先选择文件！');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.data) {
+                        alert('文件格式不正确！');
+                        return;
+                    }
+
+                    // 确认导入
+                    if (!confirm('确定要导入数据吗？这将合并到当前所有数据！')) {
+                        return;
+                    }
+
+                    // 合并数据而不是覆盖
+                    if (data.data.wordGroups) {
+                        const existingWordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+                        const newWordGroups = data.data.wordGroups;
+                        // 使用ID去重，保留现有的
+                        const existingIds = new Set(existingWordGroups.map(wg => wg.id));
+                        const uniqueNewGroups = newWordGroups.filter(wg => !existingIds.has(wg.id));
+                        const mergedWordGroups = [...existingWordGroups, ...uniqueNewGroups];
+                        localStorage.setItem('wordGroups', JSON.stringify(mergedWordGroups));
+                    }
+                    
+                    if (data.data.flashcards) {
+                        const existingFlashcards = JSON.parse(localStorage.getItem('flashcards') || '[]');
+                        const newFlashcards = data.data.flashcards;
+                        // 使用ID去重，保留现有的
+                        const existingIds = new Set(existingFlashcards.map(fc => fc.id));
+                        const uniqueNewFlashcards = newFlashcards.filter(fc => !existingIds.has(fc.id));
+                        const mergedFlashcards = [...existingFlashcards, ...uniqueNewFlashcards];
+                        localStorage.setItem('flashcards', JSON.stringify(mergedFlashcards));
+                    }
+                    
+                    if (data.data.choiceQuestionBanks) {
+                        const existingBanks = JSON.parse(localStorage.getItem('choiceQuestionBanks') || '[]');
+                        const newBanks = data.data.choiceQuestionBanks;
+                        // 使用ID去重，保留现有的
+                        const existingIds = new Set(existingBanks.map(bank => bank.id));
+                        const uniqueNewBanks = newBanks.filter(bank => !existingIds.has(bank.id));
+                        const mergedBanks = [...existingBanks, ...uniqueNewBanks];
+                        localStorage.setItem('choiceQuestionBanks', JSON.stringify(mergedBanks));
+                    }
+                    
+                    if (data.data.wrongWords) {
+                        const existingWrongWords = JSON.parse(localStorage.getItem('wrongWords') || '[]');
+                        const newWrongWords = data.data.wrongWords;
+                        // 错题记录使用时间戳去重
+                        const existingTimestamps = new Set(existingWrongWords.map(ww => ww.timestamp));
+                        const uniqueNewWrongWords = newWrongWords.filter(ww => !existingTimestamps.has(ww.timestamp));
+                        const mergedWrongWords = [...existingWrongWords, ...uniqueNewWrongWords];
+                        localStorage.setItem('wrongWords', JSON.stringify(mergedWrongWords));
+                    }
+                    
+                    if (data.data.studyHistory) {
+                        const existingHistory = JSON.parse(localStorage.getItem('studyHistory') || '[]');
+                        const newHistory = data.data.studyHistory;
+                        // 学习历史使用sessionId去重
+                        const existingSessionIds = new Set(existingHistory.map(h => h.sessionId));
+                        const uniqueNewHistory = newHistory.filter(h => !existingSessionIds.has(h.sessionId));
+                        const mergedHistory = [...existingHistory, ...uniqueNewHistory];
+                        localStorage.setItem('studyHistory', JSON.stringify(mergedHistory));
+                    }
+
+                    alert('数据导入成功！页面将刷新以应用新数据。');
+                    location.reload();
+                } catch (error) {
+                    alert('导入失败：' + error.message);
+                    console.error('导入失败:', error);
+                }
+            };
+            reader.readAsText(file);
+        }
 
         // 简单的Markdown转HTML函数
         function convertMarkdownToHtml(markdown) {
