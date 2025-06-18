@@ -1,4 +1,4 @@
-```markdown
+
 # README
 
 ## Choice-Question 界面说明
@@ -87,4 +87,4 @@
 ---
 
 感谢使用，祝你使用愉快！
-```
+
