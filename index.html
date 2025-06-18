@@ -124,14 +124,124 @@
                         开始使用
                     </a>
                 </div>
+
+                <!-- 使用说明卡片 -->
+                <div class="bg-white rounded-xl card-shadow p-6 transform transition-all duration-300 hover:shadow-lg flex flex-col h-full">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-question-circle text-secondary text-xl"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold text-gray-800">使用说明</h2>
+                    </div>
+                    <p class="text-gray-600 flex-grow">查看详细的使用指南、格式规范和AI提示词示例。</p>
+                    <button onclick="showReadme()" class="block w-full bg-secondary text-white text-center rounded-lg px-6 py-3 hover:bg-secondary/90 transition-all duration-200 mt-6">
+                        查看说明
+                    </button>
+                </div>
             </div>
         </div>
     </main>
+
+    <!-- README 查看模态框 -->
+    <div id="readme-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <i class="fa fa-book mr-2"></i>使用说明
+                    </h3>
+                    <button onclick="closeReadme()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div id="readme-content" class="prose prose-lg max-w-none">
+                    <!-- README 内容将由JS动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
 
     <footer class="bg-white py-4 border-t border-gray-200">
         <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
             <p>英语学习助手 &copy; 2024 | 学习助手</p>
         </div>
     </footer>
+
+    <script>
+        // 显示README内容
+        async function showReadme() {
+            try {
+                const response = await fetch('README.md');
+                const markdown = await response.text();
+                const html = convertMarkdownToHtml(markdown);
+                
+                document.getElementById('readme-content').innerHTML = html;
+                document.getElementById('readme-modal').classList.remove('hidden');
+                document.getElementById('readme-modal').classList.add('flex');
+            } catch (error) {
+                console.error('加载README失败:', error);
+                alert('加载使用说明失败，请检查网络连接');
+            }
+        }
+
+        // 关闭README模态框
+        function closeReadme() {
+            document.getElementById('readme-modal').classList.add('hidden');
+            document.getElementById('readme-modal').classList.remove('flex');
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('readme-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeReadme();
+            }
+        });
+
+        // 简单的Markdown转HTML函数
+        function convertMarkdownToHtml(markdown) {
+            let html = markdown;
+            
+            // 处理标题
+            html = html.replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold text-gray-800 mt-6 mb-3">$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-primary mt-8 mb-4 border-b border-gray-200 pb-2">$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-primary mt-8 mb-6">$1</h1>');
+            
+            // 处理粗体
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+            
+            // 处理代码块
+            html = html.replace(/```json\n([\s\S]*?)\n```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm text-gray-800">$1</code></pre>');
+            html = html.replace(/```js\n([\s\S]*?)\n```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm text-gray-800">$1</code></pre>');
+            html = html.replace(/```\n([\s\S]*?)\n```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm text-gray-800">$1</code></pre>');
+            
+            // 处理行内代码
+            html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">$1</code>');
+            
+            // 处理列表
+            html = html.replace(/^\d+\. (.*$)/gim, '<li class="ml-4">$1</li>');
+            html = html.replace(/^- (.*$)/gim, '<li class="ml-4">$1</li>');
+            
+            // 包装列表
+            html = html.replace(/(<li class="ml-4">.*<\/li>)/gs, '<ol class="list-decimal space-y-1 my-4">$1</ol>');
+            
+            // 处理段落
+            html = html.replace(/\n\n/g, '</p><p class="my-4 text-gray-700 leading-relaxed">');
+            html = html.replace(/^(?!<[h|p|o|u|pre])(.*$)/gim, '<p class="my-4 text-gray-700 leading-relaxed">$1</p>');
+            
+            // 处理分隔线
+            html = html.replace(/^---$/gim, '<hr class="my-8 border-gray-200">');
+            
+            // 处理链接
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline" target="_blank">$1</a>');
+            
+            // 清理多余的段落标签
+            html = html.replace(/<p class="my-4 text-gray-700 leading-relaxed"><\/p>/g, '');
+            html = html.replace(/<p class="my-4 text-gray-700 leading-relaxed">(<[^>]+>.*<\/[^>]+>)<\/p>/g, '$1');
+            
+            return html;
+        }
+    </script>
 </body>
 </html> 
