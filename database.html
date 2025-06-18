@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词数据库管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a73e8',
+                        secondary: '#4285f4',
+                        success: '#34a853',
+                        danger: '#ea4335',
+                        neutral: '#f8f9fa',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            }
+            .option-hover {
+                transition: all 0.2s ease-in-out;
+            }
+            .option-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(26, 115, 232, 0.15);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <a href="index.html" class="flex items-center text-gray-600 hover:text-primary transition-colors duration-200">
+                    <i class="fa fa-arrow-left mr-2"></i>
+                    <span>返回主页</span>
+                </a>
+                <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-primary flex items-center">
+                    <i class="fa fa-database mr-3"></i>单词数据库管理
+                </h1>
+                <div class="w-24"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- 添加新单词组 -->
+            <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">添加新单词组</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+                        <input type="text" id="word-group-note" class="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="请输入单词组备注">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">单词数据</label>
+                        <textarea id="word-group-data" class="w-full h-64 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" 
+                            placeholder="请输入单词数据，格式如下：
+{word: '单词1', translation: '翻译1', options: ['选项1', '选项2', '选项3', '选项4']},
+{word: '单词2', translation: '翻译2', options: ['选项1', '选项2', '选项3', '选项4']}"></textarea>
+                    </div>
+                    <button onclick="saveWordGroup()" class="w-full bg-primary text-white rounded-lg px-6 py-3 hover:bg-primary/90 transition-all duration-200">
+                        保存单词组
+                    </button>
+                </div>
+            </div>
+
+            <!-- 单词组列表 -->
+            <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">单词组列表</h2>
+                <div id="word-groups-list" class="space-y-4">
+                    <!-- 单词组将由JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 错题集 -->
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">错题集</h2>
+                <div id="wrong-words-list" class="space-y-4">
+                    <!-- 错题将由JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 数据管理 -->
+            <div class="bg-white rounded-xl card-shadow p-6 mt-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">数据管理</h2>
+                <div class="space-y-4">
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <h3 class="font-medium mb-2">本地存储数据</h3>
+                        <p class="text-sm text-gray-600 mb-4">所有数据都保存在浏览器的本地存储中，您可以查看或导出数据。</p>
+                        <div class="flex space-x-2">
+                            <button onclick="showStorageData()" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all duration-200">
+                                查看数据
+                            </button>
+                            <button onclick="exportData()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-200">
+                                导出数据
+                            </button>
+                            <button onclick="clearAllData()" class="px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-all duration-200">
+                                清除所有数据
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 单词组详情弹窗 -->
+    <div id="word-group-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800" id="detail-title">单词组详情</h3>
+                    <button onclick="closeDetailModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div id="word-group-detail-content" class="space-y-4">
+                    <!-- 单词详情将由JS动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据查看弹窗 -->
+    <div id="storage-data-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl max-w-4xl w-full mx-4 max-h-[80vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800">本地存储数据</h3>
+                    <button onclick="closeStorageModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="font-medium mb-2">单词组数据</h4>
+                        <pre id="word-groups-data" class="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm"></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-2">错题数据</h4>
+                        <pre id="wrong-words-data" class="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white py-4 border-t border-gray-200">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>单词数据库管理 &copy; 2024 | 学习助手</p>
+        </div>
+    </footer>
+
+    <script>
+        // 保存单词组到本地存储
+        function saveWordGroup() {
+            try {
+                const note = document.getElementById('word-group-note').value.trim();
+                const data = document.getElementById('word-group-data').value;
+                
+                if (!note) {
+                    alert('请输入单词组备注！');
+                    return;
+                }
+                
+                if (!data) {
+                    alert('请输入单词数据！');
+                    return;
+                }
+
+                // 解析单词数据
+                const jsonStr = '[' + data.replace(/'/g, '"') + ']';
+                const wordData = JSON.parse(jsonStr);
+
+                // 获取现有单词组
+                let wordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+                
+                // 添加新单词组
+                wordGroups.push({
+                    id: Date.now(),
+                    note: note,
+                    data: wordData,
+                    createdAt: new Date().toISOString()
+                });
+
+                // 保存到本地存储
+                localStorage.setItem('wordGroups', JSON.stringify(wordGroups));
+
+                // 清空输入
+                document.getElementById('word-group-note').value = '';
+                document.getElementById('word-group-data').value = '';
+
+                // 刷新显示
+                loadWordGroups();
+                alert('保存成功！');
+            } catch (error) {
+                alert('保存失败，请检查输入格式！');
+                console.error(error);
+            }
+        }
+
+        // 加载单词组列表
+        function loadWordGroups() {
+            const wordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+            const container = document.getElementById('word-groups-list');
+            
+            if (wordGroups.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无单词组</p>';
+                return;
+            }
+
+            container.innerHTML = wordGroups.map(group => `
+                <div class="p-4 border border-gray-200 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <h3 class="font-medium">${group.note}</h3>
+                            <p class="text-sm text-gray-500">创建时间：${new Date(group.createdAt).toLocaleString()}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="showWordGroupDetail(${group.id})" class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all duration-200">
+                                查看详情
+                            </button>
+                            <a href="englishdudu.html?groupId=${group.id}" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-200">
+                                开始挑战
+                            </a>
+                            <button onclick="deleteWordGroup(${group.id})" class="px-4 py-2 bg-danger text-white rounded-lg hover:bg-danger/90 transition-all duration-200">
+                                删除
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">单词数量：${group.data.length}</p>
+                </div>
+            `).join('');
+        }
+
+        // 删除单词组
+        function deleteWordGroup(id) {
+            if (!confirm('确定要删除这个单词组吗？')) return;
+
+            let wordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+            wordGroups = wordGroups.filter(group => group.id !== id);
+            localStorage.setItem('wordGroups', JSON.stringify(wordGroups));
+            loadWordGroups();
+        }
+
+        // 加载错题集
+        function loadWrongWords() {
+            const wrongWords = JSON.parse(localStorage.getItem('wrongWords') || '[]');
+            const container = document.getElementById('wrong-words-list');
+            
+            if (wrongWords.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无错题记录</p>';
+                return;
+            }
+
+            // 按时间倒序排列
+            wrongWords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            container.innerHTML = wrongWords.map(item => `
+                <div class="p-4 border border-gray-200 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-medium">${item.word}</h3>
+                        <span class="text-sm text-gray-500">${new Date(item.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="text-sm">
+                        <p class="mb-1">你的答案：<span class="text-danger">${item.selected}</span></p>
+                        <p>正确答案：<span class="text-success">${item.correct}</span></p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 显示单词组详情
+        function showWordGroupDetail(groupId) {
+            const wordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+            const group = wordGroups.find(g => g.id === groupId);
+            
+            if (!group) return;
+
+            // 设置标题
+            document.getElementById('detail-title').textContent = group.note;
+
+            // 生成单词详情内容
+            const content = document.getElementById('word-group-detail-content');
+            content.innerHTML = group.data.map((word, index) => `
+                <div class="p-4 border border-gray-200 rounded-lg">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-medium text-lg">${index + 1}. ${word.word}</h4>
+                            <p class="text-success mt-1">正确答案：${word.translation}</p>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-600">选项：</p>
+                        <div class="grid grid-cols-2 gap-2 mt-1">
+                            ${word.options.map(option => `
+                                <div class="p-2 bg-gray-50 rounded text-sm">
+                                    ${option}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // 显示弹窗
+            const modal = document.getElementById('word-group-detail-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // 关闭详情弹窗
+        function closeDetailModal() {
+            const modal = document.getElementById('word-group-detail-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // 点击弹窗外部关闭弹窗
+        document.getElementById('word-group-detail-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
+            }
+        });
+
+        // 显示存储数据
+        function showStorageData() {
+            const wordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+            const wrongWords = JSON.parse(localStorage.getItem('wrongWords') || '[]');
+
+            document.getElementById('word-groups-data').textContent = 
+                JSON.stringify(wordGroups, null, 2);
+            document.getElementById('wrong-words-data').textContent = 
+                JSON.stringify(wrongWords, null, 2);
+
+            const modal = document.getElementById('storage-data-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // 关闭存储数据弹窗
+        function closeStorageModal() {
+            const modal = document.getElementById('storage-data-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // 导出数据
+        function exportData() {
+            const data = {
+                wordGroups: JSON.parse(localStorage.getItem('wordGroups') || '[]'),
+                wrongWords: JSON.parse(localStorage.getItem('wrongWords') || '[]')
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `word-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 清除所有数据
+        function clearAllData() {
+            if (!confirm('确定要清除所有数据吗？此操作不可恢复！')) return;
+            
+            localStorage.removeItem('wordGroups');
+            localStorage.removeItem('wrongWords');
+            
+            // 刷新显示
+            loadWordGroups();
+            loadWrongWords();
+            
+            alert('所有数据已清除！');
+        }
+
+        // 点击弹窗外部关闭弹窗
+        document.getElementById('storage-data-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeStorageModal();
+            }
+        });
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadWordGroups();
+            loadWrongWords();
+        });
+    </script>
+</body>
+</html> 

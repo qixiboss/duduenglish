@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词翻译挑战</title>
+    <script src="https://cdn.tailwindcss.com  "></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css  " rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1a73e8',
+                        secondary: '#4285f4',
+                        success: '#34a853',
+                        danger: '#ea4335',
+                        neutral: '#f8f9fa',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            }
+            .option-hover {
+                transition: all 0.2s ease-in-out;
+            }
+            .option-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(26, 115, 232, 0.15);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <a href="index.html" class="flex items-center text-gray-600 hover:text-primary transition-colors duration-200">
+                    <i class="fa fa-arrow-left mr-2"></i>
+                    <span>返回主页</span>
+                </a>
+                <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-primary flex items-center">
+                    <i class="fa fa-book mr-3"></i>单词翻译挑战
+                </h1>
+                <div class="w-24"></div> <!-- 为了保持标题居中，添加一个占位元素 -->
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- 输入界面 -->
+            <div id="input-container" class="bg-white rounded-xl card-shadow p-6 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">输入单词库</h2>
+                <div class="mb-4">
+                    <textarea id="word-bank-input" class="w-full h-64 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" 
+                        placeholder="请输入单词库，格式如下（可以输入多个单词）：
+{word: '单词1', translation: '翻译1', options: ['选项1', '选项2', '选项3', '选项4']},
+{word: '单词2', translation: '翻译2', options: ['选项1', '选项2', '选项3', '选项4']}"></textarea>
+                </div>
+                <button onclick="startCustomQuiz()" class="w-full bg-primary text-white rounded-lg px-6 py-3 hover:bg-primary/90 transition-all duration-200">
+                    开始挑战
+                </button>
+            </div>
+
+            <!-- 挑战界面 -->
+            <div id="quiz-container" class="hidden">
+                <!-- 进度条 -->
+                <div class="mb-8">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-600">进度</span>
+                        <span class="text-sm font-medium text-primary" id="progress-text">1/0</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-primary h-2.5 rounded-full transition-all duration-500" id="progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- 卡片容器 -->
+                <div class="bg-white rounded-xl card-shadow p-6 mb-8 transform transition-all duration-300 hover:shadow-lg">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4" id="question">单词：</h2>
+                        <p class="text-gray-500 text-sm mb-4">选择正确的中文翻译</p>
+                    </div>
+
+                    <div id="options" class="space-y-3">
+                        <!-- 选项将由JS动态生成 -->
+                    </div>
+
+                    <div id="result" class="mt-6 hidden">
+                        <div class="p-4 rounded-lg transition-all duration-300" id="result-message"></div>
+                    </div>
+                </div>
+
+                <!-- 得分卡片 -->
+                <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-700">当前得分</h3>
+                        <div class="flex items-center">
+                            <span class="text-2xl font-bold text-primary mr-2" id="score">0</span>
+                            <span class="text-gray-500">/0</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 h-1 bg-gray-100 rounded-full">
+                        <div class="h-full bg-primary rounded-full transition-all duration-500" id="score-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- 错题集卡片 -->
+                <div id="wrong-answers-container" class="bg-white rounded-xl card-shadow p-6 mb-8 hidden">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fa fa-exclamation-circle text-danger mr-2"></i>错题集
+                    </h3>
+                    <div id="wrong-answers-list" class="space-y-4">
+                        <!-- 错题将由JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white py-4 border-t border-gray-200">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>单词翻译挑战 &copy;  | 学习助手</p>
+        </div>
+    </footer>
+
+    <script>
+        let wordBank = [];
+        let currentQuestionIndex = 0;
+        let userScore = 0;
+        let isAnswered = false;
+        const wrongAnswers = [];
+
+        // 获取URL参数
+        function getUrlParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // 从本地存储加载单词组
+        function loadWordGroup(groupId) {
+            const wordGroups = JSON.parse(localStorage.getItem('wordGroups') || '[]');
+            const group = wordGroups.find(g => g.id === parseInt(groupId));
+            if (group) {
+                return group.data;
+            }
+            return null;
+        }
+
+        // 保存错题
+        function saveWrongWord(word, selected, correct) {
+            let wrongWords = JSON.parse(localStorage.getItem('wrongWords') || '[]');
+            wrongWords.push({
+                word,
+                selected,
+                correct,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('wrongWords', JSON.stringify(wrongWords));
+        }
+
+        // 初始化游戏
+        function initGame() {
+            const groupId = getUrlParam('groupId');
+            let words;
+            
+            if (groupId) {
+                // 从数据库加载单词组
+                words = loadWordGroup(groupId);
+                if (!words) {
+                    alert('未找到指定的单词组！');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                // 隐藏输入界面，显示测验界面
+                document.getElementById('input-container').classList.add('hidden');
+                document.getElementById('quiz-container').classList.remove('hidden');
+            } else {
+                // 使用默认单词组
+                words = [
+                    {word: 'apple', translation: '苹果', options: ['苹果', '香蕉', '橙子', '梨']},
+                    {word: 'banana', translation: '香蕉', options: ['苹果', '香蕉', '橙子', '梨']},
+                    {word: 'orange', translation: '橙子', options: ['苹果', '香蕉', '橙子', '梨']},
+                    {word: 'pear', translation: '梨', options: ['苹果', '香蕉', '橙子', '梨']}
+                ];
+            }
+
+            // 打乱单词顺序
+            wordBank = words.sort(() => Math.random() - 0.5);
+            
+            // 重置状态
+            currentQuestionIndex = 0;
+            userScore = 0;
+            wrongAnswers.length = 0;
+            
+            // 更新显示
+            document.querySelectorAll('.text-gray-500').forEach(el => {
+                if (el.textContent.includes('/')) {
+                    el.textContent = `/${wordBank.length}`;
+                }
+            });
+            
+            // 开始测验
+            showQuestion(currentQuestionIndex);
+        }
+
+        // 开始自定义测验
+        function startCustomQuiz() {
+            try {
+                const input = document.getElementById('word-bank-input').value;
+                // 将输入字符串转换为有效的JSON格式
+                const jsonStr = '[' + input.replace(/'/g, '"') + ']';
+                wordBank = JSON.parse(jsonStr);
+                
+                if (wordBank.length === 0) {
+                    alert('请输入至少一个单词！');
+                    return;
+                }
+
+                // 隐藏输入界面，显示测验界面
+                document.getElementById('input-container').classList.add('hidden');
+                document.getElementById('quiz-container').classList.remove('hidden');
+
+                // 重置状态
+                currentQuestionIndex = 0;
+                userScore = 0;
+                wrongAnswers.length = 0;
+                
+                // 更新显示
+                document.querySelectorAll('.text-gray-500').forEach(el => {
+                    if (el.textContent.includes('/')) {
+                        el.textContent = `/${wordBank.length}`;
+                    }
+                });
+                
+                // 开始测验
+                showQuestion(currentQuestionIndex);
+            } catch (error) {
+                alert('输入格式错误，请检查输入内容！');
+                console.error(error);
+            }
+        }
+
+        // 打乱选项顺序的函数
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // 显示题目
+        function showQuestion(index) {
+            isAnswered = false;
+            const question = wordBank[index];
+            document.getElementById('question').textContent = `单词：${question.word}`;
+            
+            // 清空结果显示
+            const resultDiv = document.getElementById('result');
+            resultDiv.classList.add('hidden');
+            
+            // 生成随机选项顺序，每个选项只取第一个意思
+            const shuffledOptions = shuffleArray(question.options.map(option => {
+                // 分割多个意思，只取第一个
+                const meanings = option.split('；');
+                return {
+                    display: meanings[0],
+                    full: option
+                };
+            }));
+            
+            // 创建选项按钮（竖排）
+            const optionsHtml = shuffledOptions
+                .map((option, idx) => `
+                    <button class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-left option-hover" 
+                            onclick="checkAnswer(this, '${option.display}', '${option.full}', '${question.translation}', '${question.word}')">
+                        <span class="font-medium mr-2">${String.fromCharCode(65 + idx)}</span>${option.display}
+                    </button>
+                `)
+                .join('');
+            document.getElementById('options').innerHTML = optionsHtml;
+            
+            // 更新进度条
+            document.getElementById('progress-text').textContent = `${index + 1}/${wordBank.length}`;
+            document.getElementById('progress-bar').style.width = `${((index + 1) / wordBank.length) * 100}%`;
+        }
+
+        // 检查答案
+        function checkAnswer(button, selectedOption, selectedFull, correctAnswer, word) {
+            if (isAnswered) return;
+            
+            isAnswered = true;
+            // 检查选中的选项是否完全匹配正确答案
+            const isCorrect = selectedFull === correctAnswer;
+            const resultDiv = document.getElementById('result');
+            const resultMessage = document.getElementById('result-message');
+            
+            // 更新按钮样式
+            const allButtons = document.querySelectorAll('#options button');
+            allButtons.forEach(btn => {
+                btn.disabled = true;
+                // 获取按钮的完整文本（不包含选项字母）
+                const btnText = btn.textContent.replace(/^[A-D]\.\s*/, '').trim();
+                // 只有当按钮文本完全等于正确答案的第一个意思时才标记为正确
+                if (btnText === correctAnswer.split('；')[0]) {
+                    // 正确答案标绿
+                    btn.classList.remove('border-gray-200');
+                    btn.classList.add('border-success', 'bg-success/10');
+                    btn.innerHTML += ' <i class="fa fa-check text-success ml-2"></i>';
+                }
+            });
+            
+            // 高亮用户选择的按钮
+            button.classList.remove('border-gray-200');
+            
+            if (isCorrect) {
+                // 正确答案
+                button.classList.add('border-success', 'bg-success/10');
+                button.innerHTML += ' <i class="fa fa-check text-success ml-2"></i>';
+                resultMessage.classList.remove('bg-danger/10', 'text-danger');
+                resultMessage.classList.add('bg-success/10', 'text-success');
+                resultMessage.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fa fa-check-circle text-success text-xl mr-2"></i>
+                        <span>回答正确！</span>
+                    </div>
+                    <div class="mt-2 text-gray-600">
+                        <strong>完整意思：</strong>${correctAnswer}
+                    </div>
+                `;
+                userScore++;
+            } else {
+                // 错误答案
+                button.classList.add('border-danger', 'bg-danger/10');
+                button.innerHTML += ' <i class="fa fa-times text-danger ml-2"></i>';
+                resultMessage.classList.remove('bg-success/10', 'text-success');
+                resultMessage.classList.add('bg-danger/10', 'text-danger');
+                resultMessage.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fa fa-times-circle text-danger text-xl mr-2"></i>
+                        <span>回答错误！正确答案是：<strong>${correctAnswer}</strong></span>
+                    </div>
+                `;
+                
+                // 添加到错题集
+                wrongAnswers.push({
+                    word: word,
+                    correct: correctAnswer,
+                    selected: selectedOption
+                });
+                
+                // 保存错题到本地存储
+                saveWrongWord(word, selectedOption, correctAnswer);
+            }
+            
+            // 显示结果
+            resultDiv.classList.remove('hidden');
+            
+            // 更新得分
+            document.getElementById('score').textContent = userScore;
+            document.getElementById('score-bar').style.width = `${(userScore / wordBank.length) * 100}%`;
+            
+            // 进入下一题或结束
+            currentQuestionIndex++;
+            if (currentQuestionIndex < wordBank.length) {
+                // 延迟1.5秒显示下一题
+                setTimeout(() => showQuestion(currentQuestionIndex), 1500);
+            } else {
+                // 结束 quiz，显示总分和错题集
+                setTimeout(() => showFinalResult(), 1500);
+            }
+        }
+
+        // 显示最终结果
+        function showFinalResult() {
+            document.getElementById('options').innerHTML = `
+                <div class="text-center py-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                        <i class="fa fa-trophy text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">挑战完成！</h3>
+                    <p class="text-gray-600 mb-4">你的最终得分：</p>
+                    <div class="text-4xl font-bold text-primary mb-6">${userScore}/${wordBank.length}</div>
+                    <button onclick="restartQuiz()" class="mt-6 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-200 option-hover">
+                        <i class="fa fa-refresh mr-2"></i>重新开始
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('result').classList.add('hidden');
+            
+            // 显示错题集
+            if (wrongAnswers.length > 0) {
+                const wrongAnswersList = document.getElementById('wrong-answers-list');
+                wrongAnswersList.innerHTML = wrongAnswers.map((item, idx) => `
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <div class="flex justify-between mb-2">
+                            <span class="font-medium">${idx + 1}. ${item.word}</span>
+                            <span class="text-sm text-gray-500">错误</span>
+                        </div>
+                        <div class="mb-1">你的答案：<span class="text-danger">${item.selected}</span></div>
+                        <div>正确答案：<span class="text-success font-medium">${item.correct}</span></div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('wrong-answers-container').classList.remove('hidden');
+            }
+        }
+
+        // 重新开始测验
+        function restartQuiz() {
+            // 显示输入界面
+            document.getElementById('input-container').classList.remove('hidden');
+            document.getElementById('quiz-container').classList.add('hidden');
+            // 清空输入框
+            document.getElementById('word-bank-input').value = '';
+        }
+
+        // 页面加载时初始化游戏
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
